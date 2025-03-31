@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globofone - International Calls</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Globofone</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Features</a></li>
+                <li><a href="#">Pricing</a></li>
+                <li><a href="#">Sign Up</a></li>
+                <li><a href="#">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="hero">
+        <div class="hero-content">
+            <h2>Make International Calls with Low Rates</h2>
+            <p>Sign up and start making high-quality calls globally at affordable rates.</p>
+            <button onclick="window.location.href='signup.html'">Get Started</button>
+        </div>
+    </section>
+
+    <section id="call-section">
+        <h3>Make a Call</h3>
+        <input type="text" id="peer-id" placeholder="Enter Peer ID to call" />
+        <button id="callButton">Call</button>
+        <button id="endCallButton" style="display:none;">End Call</button>
+
+        <div id="my-video-container">
+            <video id="my-video" autoplay muted></video>
+            <video id="peer-video" autoplay></video>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Globofone. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const myVideo = document.getElementById('my-video');
+        const peerVideo = document.getElementById('peer-video');
+        const peerIdInput = document.getElementById('peer-id');
+        const callButton = document.getElementById('callButton');
+        const endCallButton = document.getElementById('endCallButton');
+
+        // Initialize PeerJS (cloud server)
+        const peer = new Peer(undefined, {
+            host: 'peerjs.com',       // Use the PeerJS cloud server
+            port: 443,                // Default port for secure connections
+            path: '/myapp',           // Custom path for your app
+            secure: true              // Use a secure connection (recommended)
+        });
+
+        // Get local video stream
+        let localStream;
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localStream = stream;
+                myVideo.srcObject = stream;
+            }).catch(err => {
+                console.error('Error accessing media devices.', err);
+            });
+
+        // Handle incoming calls
+        peer.on('call', (call) => {
+            call.answer(localStream);  // Answer with the local stream
+            call.on('stream', (remoteStream) => {
+                peerVideo.srcObject = remoteStream;
+            });
+            callButton.style.display = 'none';
+            endCallButton.style.display = 'block';
+        });
+
+        // Make a call
+        callButton.addEventListener('click', () => {
+            const peerId = peerIdInput.value.trim();
+            if (peerId) {
+                const call = peer.call(peerId, localStream);
+                call.on('stream', (remoteStream) => {
+                    peerVideo.srcObject = remoteStream;
+                });
+                callButton.style.display = 'none';
+                endCallButton.style.display = 'block';
+            } else {
+                alert('Please enter a valid Peer ID');
+            }
+        });
+
+        // End the call
+        endCallButton.addEventListener('click', () => {
+            peer.connections.forEach((connections) => {
+                connections.forEach((connection) => {
+                    connection.close();
+                });
+            });
+            peerVideo.srcObject = null;
+            callButton.style.display = 'block';
+            endCallButton.style.display = 'none';
+        });
+
+        // Display peer ID
+        peer.on('open', (id) => {
+            console.log('My peer ID is ' + id);
+            alert('Your Peer ID: ' + id);
+        });
+    </script>
+</body>
+</html>
